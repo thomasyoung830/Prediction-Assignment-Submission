@@ -1,0 +1,2 @@
+wholedata <- read.csv("pml-training.csv", na.strings = c("NA", "#DIV/0!", ""))
+testingSet<-read.csv("pml-testing.csv",na.strings=c("NA","#DIV/0!"))
