@@ -9,22 +9,122 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Background
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
-```{r cars}
-summary(cars)
+## Loading the Data
+
+
+```{r fff}
+training <- read.csv("pml-training.csv", na.strings = c("NA", "#DIV/0!", ""))
+testing <- read.csv("pml-testing.csv",na.strings=c("NA","#DIV/0!"))
 ```
 
-## Including Plots
+## Examining the Classes
+Taking a look at the various classes in the data
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r pressure}
+table(training$classe)
 ```
-
+## Viewing the Data in a Table
+```{r ffsssf}
+prop.table(table(training$user_name, training$classe), 1)
+```
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r ffsssaaf}
+prop.table(table(training$classe))
+```
+## Cleaning up Data
+Revoming columbs 1-6 to get just the data and then removing all the NA's
+```{r ffsssddddaaf}
+training <- training[, 7:160]
+testing  <- testing[, 7:160]
+```
+
+```{r ffsssdddddddaaf}
+is_data  <- apply(!is.na(training), 2, sum) > 19621  # which is the number of observations
+training <- training[, is_data]
+testing  <- testing[, is_data]
+```
+## Splitting the Data with Partitions
+```{r ffsssdddddddfffaaf}
+library(caret)
+```
+
+```{r ffsaf}
+set.seed(3141592)
+inTrain <- createDataPartition(y=training$classe, p=0.60, list=FALSE)
+train1  <- training[inTrain,]
+train2  <- training[-inTrain,]
+dim(train1)
+```
+## Modeling
+Loading required packages
+```{r ffsassstttf}
+library(rpart.plot)
+```
+
+```{r ffsasssqqtttf}
+library(RGtk2)
+```
+
+```{r ffsasssqqtteetf}
+library(randomForest)
+```
+
+```{r ffsasssqaaqtteetf}
+library(rattle)
+```
+
+```{r ffsatttf}
+dim(train2)
+```
+
+```{r fdfsatttf}
+modfit1 <- train(classe ~ .,method='rpart',data=train1)
+fancyRpartPlot(modfit1$finalModel)
+```
+
+```{r fdfs1atttf}
+pred=predict(modfit1,newdata=train1)
+z=confusionMatrix(pred,train1$classe)
+z$table
+```
+
+```{r fdfs1atf}
+z$overall[1]
+```
+We can see the accuracy of "0.49" for this model fit shows no purity, thus the model fit is rejected.
+
+## Random Forest Method
+Finding a prediction using the Random Forest Method
+```{r ffsatttxxf}
+modfit2=randomForest(classe~., data=train2, method='class')
+pred2 = predict(modfit2,train2,type='class') 
+qplot(roll_belt, magnet_dumbbell_y, colour=classe, data=train2)
+```
+
+```{r fdfsatttf2}
+z2=confusionMatrix(pred2,train2$classe)
+z2$table
+```
+
+```{r fdfsatttf2dd}
+z2$overall[1]
+```
+This model has an accuracy of 1 and therefore will be chosen to predict the test data set.
+
+## Conclusion
+It's clear to see from the results above that the Random Forest Method provides the best fit model 
+
+```{r fdfsatjttf2dd}
+pred3 =  predict(modfit2,testing,type='class')
+  nofiles = length(pred3)
+  for (i in 1:nofiles){
+      filename =  paste0("problem_id",i,".txt")
+      write.table(pred3[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+pred3
+```
